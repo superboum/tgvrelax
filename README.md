@@ -19,7 +19,7 @@ If you use `vscode`, Press `Windows + Shift + B` it will build automatically
 
 
 ## GET request to SNCF API example
-`https://sncf-simulateur-api-prod.azurewebsites.net/api/Calendar/PARIS%20(intramuros)/RENNES/1/2019-09-05`
+`https://sncf-simulateur-api-prod.azurewebsites.net/api/RailAvailability/Search/RENNES/PARIS%20(intramuros)/2019-09-08T00:00:00/2019-09-08T23:59:59`
 This request requires a header `ValidityToken` that can be found in the body content of the request:
 `https://simulateur.tgvmax.fr/VSC/`
 
