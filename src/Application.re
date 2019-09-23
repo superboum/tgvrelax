@@ -29,8 +29,11 @@ let get_homepage = Js.Promise.make((~resolve, ~reject) =>
       | None => resolve(. body)
     }));
 
+/*
+ * As we want to integrate the following code in a "pipeline" that handle errors
+ * we still create a promise (even if we don't have any async code)
+ */
 exception TokenNotFound;
-
 let extract_token = (body) => Js.Promise.make((~resolve, ~reject) => {
   let res = body
     ->cheerio_load(. "#hiddenToken")
