@@ -59,3 +59,16 @@ request2(
   (err,res,body) => Js.log3(err,res##statusCode,body)
 );
 */
+
+let get_trains = Js.Promise.make((~resolve, ~reject) => request(
+"https://sncf-simulateur-api-prod.azurewebsites.net/",
+(err,_, body) => switch(Js.Nullable.toOption(err)) {
+    | Some(e) => reject(. e)
+      | None => resolve(. body)
+}
+));
+
+
+let test = get_trains
+  |> Js.Promise.then_(value => { Js.log(value); Js.Promise.resolve() })
+  |> Js.Promise.catch(err => { Js.log(err); Js.Promise.resolve()})
