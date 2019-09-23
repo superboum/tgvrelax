@@ -47,15 +47,6 @@ get_homepage
   |> Js.Promise.then_(value => { Js.log(value); Js.Promise.resolve() })
   |> Js.Promise.catch(err => { Js.log(err); Js.Promise.resolve() })
 
-    /*
-    {
-      let html_instance = cheerio_load(body);
-      let input = html_instance(. "#hiddenToken");
-      let a = input->cheerio_attr("value");
-      Js.log(a);
-  })*/
-
-
 /*
 //let sms_conf = {"user": "00000000", "pass": "xxxxxxxxx", "msg": "plop ddd22é"}
 [@bs.module] external sms_conf : 'a = "../sms.json";
