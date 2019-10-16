@@ -35,6 +35,20 @@ type travel = {
 [@bs.scope "JSON"] [@bs.val]
 external parseIntoTravelList : string => list(travel) = "parse";
 
+[@bs.deriving abstract]
+type train_status = {
+  identifier: string,
+  full: bool
+};
+
+[@bs.deriving abstract]
+type travel_request = {
+  originName: string,
+  destinationName: string,
+  date: string,
+  trains: list(train_status)
+};
+
 type result('a) = 
   | ResultError(exn)
   | ResultContent('a);
@@ -78,16 +92,22 @@ let sncf_api = (validity_token, endpoint, cb) =>
 };
 
 //let get_trains = sncf_inited_api => sncf_inited_api("/RailAvailability/Search/RENNES/LYON%20(gares%20intramuros)/2019-10-16T00:00:00/2019-10-16T23:59:59")
+[@bs.module] external requested_travels : list(travel_request) = "../request_travels.json";
+Js.log(List.hd(requested_travels)->destinationNameGet)
 
-let with_sncf_api = cb => get_homepage(v => cb(sncf_api(extract_token(v))));
+let with_sncf_api = cb => get_homepage(v => v->extract_token->sncf_api->cb);
+let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
+  "/RailAvailability/Search/" ++ origName ++ "/" ++ destName ++ "/" ++ date ++ "T00:00:00/" ++ date ++ "T23:59:59",
+  v => switch(v) {
+    | ResultContent(json) => cb(ResultContent(json->parseIntoTravelList))
+    | ResultError(err) => cb(ResultError(err))
+  });
 
 with_sncf_api(sapi => {
-  sapi(
-    "/RailAvailability/Search/RENNES/LYON%20(gares%20intramuros)/2019-10-16T00:00:00/2019-10-16T23:59:59", 
-    v => switch(v) {
-      | ResultContent(json) => Js.Console.log(parseIntoTravelList(json))
+  get_train_availability(sapi, "RENNES", "LYON%20(gares%20intramuros)", "2019-10-23", v => switch(v) {
+      | ResultContent(parsed) => Js.Console.log(parsed)
       | ResultError(err) => Js.Console.error(err)
-    })
+  });
 })
 
 /*

@@ -1,0 +1,18 @@
+[
+  {
+    "originName": "RENNES",
+    "destinationName": "LYON%20(gares%20intramuros)",
+    "date": "2019-10-16",
+    "interestedByTrains": [
+      {"identifier": "5312", "full": true }
+    ]
+  },
+  {
+    "originName": "RENNES",
+    "destinationName": "LYON%20(gares%20intramuros)",
+    "date": "2019-10-23",
+    "interestedByTrains": [
+      {"identifier": "5312", "full": true }
+    ]
+  }
+]
