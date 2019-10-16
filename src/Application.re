@@ -28,17 +28,17 @@ type travel = {
   departureDateTime: string,
   arrivalDateTime: string,
   train: string,
-  availableSeatCount: int,
+  availableSeatsCount: int,
   axe: string
 };
 
 [@bs.scope "JSON"] [@bs.val]
-external parseIntoTravelList : string => list(travel) = "parse";
+external parseIntoTravelList : string => array(travel) = "parse";
 
 [@bs.deriving abstract]
 type train_status = {
   identifier: string,
-  full: bool
+  mutable full: bool
 };
 
 [@bs.deriving abstract]
@@ -46,7 +46,7 @@ type travel_request = {
   originName: string,
   destinationName: string,
   date: string,
-  trains: list(train_status)
+  trains: array(train_status)
 };
 
 type result('a) = 
@@ -92,8 +92,7 @@ let sncf_api = (validity_token, endpoint, cb) =>
 };
 
 //let get_trains = sncf_inited_api => sncf_inited_api("/RailAvailability/Search/RENNES/LYON%20(gares%20intramuros)/2019-10-16T00:00:00/2019-10-16T23:59:59")
-[@bs.module] external requested_travels : list(travel_request) = "../request_travels.json";
-Js.log(List.hd(requested_travels)->destinationNameGet)
+[@bs.module] external requested_travels : array(travel_request) = "../request_travels.json";
 
 let with_sncf_api = cb => get_homepage(v => v->extract_token->sncf_api->cb);
 let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
@@ -103,11 +102,38 @@ let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
     | ResultError(err) => cb(ResultError(err))
   });
 
-with_sncf_api(sapi => {
-  get_train_availability(sapi, "RENNES", "LYON%20(gares%20intramuros)", "2019-10-23", v => switch(v) {
-      | ResultContent(parsed) => Js.Console.log(parsed)
+let travel_logic = (requested, from_api) => switch(requested->fullGet, from_api->availableSeatsCountGet) {
+  | (true, 0) => ()
+  | (false, 0) => {
+    requested->fullSet(true);
+    Js.Console.log2("No more seat is available for", requested->identifierGet);
+    // Trigger SMS
+  }
+  | (true, _) => {
+    requested->fullSet(false);
+    Js.Console.log(from_api->availableSeatsCountGet->string_of_int ++ " seats are available for " ++ requested->identifierGet ++ " for date " ++ from_api->departureDateTimeGet);
+    // Trigger SMS
+  }
+  | (false, _) => () 
+}
+
+let iter_train = (req_trav, api_travels) => 
+  Js.Array.forEach(req_train => {
+    switch (Js.Array.find(api_travel => api_travel->trainGet == req_train->identifierGet, api_travels)) {
+      | Some(api_travel) => travel_logic(req_train, api_travel)
+      | None => Js.Console.error("Train " ++ req_train->identifierGet ++ " has not been found for date " ++ req_trav->dateGet) 
+    }
+  }, req_trav->trainsGet)
+
+let iter_date = (sapi, req_trav) => {
+  get_train_availability(sapi, req_trav->originNameGet, req_trav->destinationNameGet, req_trav->dateGet, v => switch(v) {
+      | ResultContent(parsed) => iter_train(req_trav, parsed)
       | ResultError(err) => Js.Console.error(err)
   });
+}
+
+with_sncf_api(sapi => {
+  Js.Array.forEach(iter_date(sapi), requested_travels)
 })
 
 /*
