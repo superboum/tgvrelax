@@ -91,8 +91,8 @@ let sncf_api = (validity_token, endpoint, cb) =>
         })
 };
 
-//let get_trains = sncf_inited_api => sncf_inited_api("/RailAvailability/Search/RENNES/LYON%20(gares%20intramuros)/2019-10-16T00:00:00/2019-10-16T23:59:59")
 [@bs.module] external requested_travels : array(travel_request) = "../request_travels.json";
+[@bs.module] external sms_conf : 'a = "../sms.json";
 
 let with_sncf_api = cb => get_homepage(v => v->extract_token->sncf_api->cb);
 let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
@@ -106,8 +106,11 @@ let travel_logic = (requested, from_api) => switch(requested->fullGet, from_api-
   | (true, 0) => ()
   | (false, 0) => {
     requested->fullSet(true);
-    Js.Console.log2("No more seat is available for", requested->identifierGet);
-    // Trigger SMS
+    Js.Console.log("No more seat is available for " ++ requested->identifierGet);
+    /*request2(
+      params(~uri="https://smsapi.free-mobile.fr/sendmsg", ~qs=sms_conf, ()),
+      (err,res,body) => Js.log3(err,res##statusCode,body)
+    );  */
   }
   | (true, _) => {
     requested->fullSet(false);
@@ -132,9 +135,18 @@ let iter_date = (sapi, req_trav) => {
   });
 }
 
-with_sncf_api(sapi => {
-  Js.Array.forEach(iter_date(sapi), requested_travels)
-})
+type timerId;
+[@bs.val] external setInterval: ((. unit) => unit, int) => timerId = "setInterval";
+
+let main_loop = () => {
+  Js.Console.log("New probe...")
+  with_sncf_api(sapi => {
+    Js.Array.forEach(iter_date(sapi), requested_travels)
+  })
+}
+
+main_loop()
+setInterval((.) => main_loop(), 30000)
 
 /*
 //let sms_conf = {"user": "00000000", "pass": "xxxxxxxxx", "msg": "plop ddd22é"}
