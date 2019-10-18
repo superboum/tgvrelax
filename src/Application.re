@@ -92,7 +92,13 @@ let sncf_api = (validity_token, endpoint, cb) =>
 };
 
 [@bs.module] external requested_travels : array(travel_request) = "../request_travels.json";
-[@bs.module] external sms_conf : 'a = "../sms.json";
+
+[@bs.deriving abstract]
+type sms_conf_fmt = {
+  user: string,
+  pass: string
+};
+[@bs.module] external sms_conf : sms_conf_fmt = "../sms.json";
 
 let with_sncf_api = cb => get_homepage(v => v->extract_token->sncf_api->cb);
 let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
@@ -102,22 +108,36 @@ let get_train_availability = (sapi, origName, destName, date, cb) => sapi(
     | ResultError(err) => cb(ResultError(err))
   });
 
-let travel_logic = (requested, from_api) => switch(requested->fullGet, from_api->availableSeatsCountGet) {
-  | (true, 0) => ()
-  | (false, 0) => {
-    requested->fullSet(true);
-    Js.Console.log("No more seat is available for " ++ requested->identifierGet);
-    /*request2(
-      params(~uri="https://smsapi.free-mobile.fr/sendmsg", ~qs=sms_conf, ()),
-      (err,res,body) => Js.log3(err,res##statusCode,body)
-    );  */
+let travel_logic = (requested, from_api) => {
+  let en_tete = "Train " ++ requested->identifierGet ++ " du " ++ from_api->departureDateTimeGet ++ " : ";
+  switch(requested->fullGet, from_api->availableSeatsCountGet) {
+    | (true, 0) => Js.Console.log(en_tete ++ "toujours pas de place disponible :(")
+    | (false, 0) => {
+      requested->fullSet(true);
+      let msg = en_tete ++ "plus de place disponible. Trop tard :(";
+      Js.Console.log(msg);
+      request2(
+        params(~uri="https://smsapi.free-mobile.fr/sendmsg", ~qs={"user": sms_conf->userGet, "pass": sms_conf->passGet, "msg": msg}, ()),
+        (err,res,body) => switch(Js.Nullable.toOption(err), Js.Nullable.toOption(res)) {
+          | (Some(e), _) => Js.Console.error2("Unable to send SMS", e)
+          | (_, None) => Js.Console.error("Unable to send SMS, emptry res")
+          | (None, Some(r)) => Js.Console.log("API answered " ++ r##statusCode ++ " with body " ++ body)
+        });
+    }
+    | (true, _) => {
+      requested->fullSet(false);
+      let msg = en_tete ++ from_api->availableSeatsCountGet->string_of_int ++ " places disponibles. Réservez vite !";
+      Js.Console.log(msg);
+      request2(
+        params(~uri="https://smsapi.free-mobile.fr/sendmsg", ~qs={"user": sms_conf->userGet, "pass": sms_conf->passGet, "msg": msg}, ()),
+        (err,res,body) => switch(Js.Nullable.toOption(err), Js.Nullable.toOption(res)) {
+          | (Some(e), _) => Js.Console.error2("Unable to send SMS", e)
+          | (_, None) => Js.Console.error("Unable to send SMS, emptry res")
+          | (None, Some(r)) => Js.Console.log("API answered " ++ r##statusCode ++ " with body " ++ body)
+        });
+    }
+    | (false, _) => Js.Console.log(en_tete ++ "toujours " ++ from_api->availableSeatsCountGet->string_of_int ++ " places disponibles.") 
   }
-  | (true, _) => {
-    requested->fullSet(false);
-    Js.Console.log(from_api->availableSeatsCountGet->string_of_int ++ " seats are available for " ++ requested->identifierGet ++ " for date " ++ from_api->departureDateTimeGet);
-    // Trigger SMS
-  }
-  | (false, _) => () 
 }
 
 let iter_train = (req_trav, api_travels) => 

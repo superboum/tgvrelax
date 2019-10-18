@@ -2,17 +2,30 @@
   {
     "originName": "RENNES",
     "destinationName": "LYON%20(gares%20intramuros)",
-    "date": "2019-10-16",
+    "date": "2019-10-25",
     "trains": [
-      {"identifier": "5312", "full": true }
+      {"identifier": "5312", "full": false },
+      {"identifier": "5318", "full": true }
+    ]
+  },
+  {
+    "destinationName": "RENNES",
+    "originName": "LYON%20(gares%20intramuros)",
+    "date": "2019-10-28",
+    "trains": [
+      {"identifier": "5351", "full": true },
+      {"identifier": "5372", "full": true },
+      {"identifier": "5374", "full": true },
+      {"identifier": "5383", "full": true }
     ]
   },
   {
     "originName": "RENNES",
     "destinationName": "LYON%20(gares%20intramuros)",
-    "date": "2019-10-23",
+    "date": "2019-11-08",
     "trains": [
-      {"identifier": "5312", "full": true }
+      {"identifier": "5312", "full": true },
+      {"identifier": "5318", "full": true }
     ]
   }
 ]
